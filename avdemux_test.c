@@ -11,7 +11,7 @@
 
 
 pthread_mutex_t g_mutex;
-int g_exit = 0;
+int g_exit = 0;// 0 - process run : > 0 - process will be exit
 
 static void addexit(int exit) {
     pthread_mutex_lock(&g_mutex);
@@ -34,9 +34,9 @@ static void sign_func(int sig) {
 }
 
 typedef struct demux_ctx {
-	int         pid;				// program id
-  uint64_t    fid; // frame index
-  FILE       *fyuv;
+	int         pid;// program id
+  uint64_t    fid;// decode frame index
+  FILE       *fyuv;// yuv save file
 }demux_ctx;
 
 static demux_ctx *g_demux_ctx = NULL;
@@ -63,17 +63,21 @@ static int DecodeCallback(AmsDecodedYUV *yuv){
     return 1;
 }
 
+// work thread param
 typedef struct thread_param_ctx {
-  char       *url;
-  FILE       *fs;// flow save file
+  char       *url;//Camera url
+  FILE       *fs;// h264 stream save file
   int         index;//index thread
-  pthread_t   tid;
+  pthread_t   tid;// thread id
   uint64_t    fid; // frame index
   int         sid; // demux ctx start idx
   int         num; // demux ctx number
 }thread_param_ctx;
 
+//Frame skip
 static int skipFrameNum = 5;
+// work thread function
+// 
 static void *demux_thread(void *arg) {
   AVPacket pkt;
   AVFormatContext *fmt_ctx = NULL;
@@ -86,6 +90,7 @@ static void *demux_thread(void *arg) {
   char outfname[32] = {0};
   AmsStreamPar *par = NULL;
   
+  // open camera url
   code = avdemux_open_input(&fmt_ctx, ctx->url, NULL, NULL);
   if (code < 0) {
         fprintf(stderr, "thread:%x pid:[%d-%d] Could not open source file %s\n", ctx->tid, ctx->sid, ctx->num, ctx->url);
@@ -93,17 +98,18 @@ static void *demux_thread(void *arg) {
   }
   
   printf("thread:%x pid:[%d-%d] avdemux_open_input:%s success\n", ctx->tid, ctx->sid, ctx->num, ctx->url);
-  
+  // find video stream
   vsidx = avdemux_find_streamidx(fmt_ctx, AVMEDIA_TYPE_VIDEO);
   if (vsidx < 0) {
         fprintf(stderr, "thread:%x pid:[%d-%d]  Could not find %s stream in input file '%s'\n", ctx->tid, ctx->sid, ctx->num,
                 av_get_media_type_string(AVMEDIA_TYPE_VIDEO),  ctx->url);
         goto end;
   }
+
   avstream = fmt_ctx->streams[vsidx];
   avcodecpar = avstream->codecpar;
   printf("thread:%x pid:[%d-%d]  avdemux_find_streamidx:%d width:%d height:%d success\n", ctx->tid, ctx->sid, ctx->num, vsidx, avcodecpar->width, avcodecpar->height);
-  
+  // open stream file
   sprintf(outfname, "rtsp_%d.h264", ctx->index);
 
   ctx->fs = fopen(outfname, "wb");
@@ -111,9 +117,8 @@ static void *demux_thread(void *arg) {
       fprintf(stderr, "thread:%x pid:[%d-%d] Could not open destination flow file %s\n", ctx->tid, ctx->sid, ctx->num, outfname);
       goto end;
   }
-  	int         pid;				// program id
-  uint64_t    fid; // frame index
-  FILE       *fyuv;
+
+// init decoder ctx param
   for (i = 0;i < ctx->num; ++i) {
     dctx[i].pid = ctx->sid + i;
     dctx[i].fid = 0;
@@ -131,6 +136,7 @@ static void *demux_thread(void *arg) {
   pkt.data = NULL;
   pkt.size = 0;
 
+// start board card stream decode
   par = (AmsStreamPar*)malloc(sizeof(AmsStreamPar));
   par->ID = ctx->sid;
   par->codecId = 0;
@@ -153,6 +159,7 @@ static void *demux_thread(void *arg) {
         break;
      }
 
+//   recv from camera stream data
      code = avdemux_read_frame(fmt_ctx, &pkt, vsidx);
      printf("thread:%x pid:[%d-%d] avdemux_read_frame index:%d  return: %d ", ctx->tid, ctx->sid, ctx->num, ctx->fid, code);
      if (code < 0) {
@@ -165,6 +172,7 @@ static void *demux_thread(void *arg) {
         continue;
      }
 
+//    send stream frame to board card decoder
       par->streamLen = pkt.size;
       par->streamData = pkt.data;
       code = 0;
@@ -189,6 +197,7 @@ end:
         code = AmsDecodeStop(par->ID);
     }
   
+  // wait decoder over
     while(1) {
        code = 0;
        for (i = 0; i < ctx->num; ++i) {
@@ -219,21 +228,21 @@ end:
 }
   
 
-
-//./avdemux_test 5 16  rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/
+// ./avdemux_test skipFrameNum decnum url_1 url_2 url_3
+// ./avdemux_test 5 4  rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/
 int main (int argc, char **argv) {
     thread_param_ctx *tp_ctx = NULL;
     int nthreads = argc - 3, i =0, ret = 0;
-    int dnum = 0;
+    int decnum = 0;
     pthread_mutex_init(&g_mutex, NULL);
     signal(SIGINT, sign_func);
     skipFrameNum = strtol(argv[1], NULL, 0);
-    dnum = strtol(argv[2], NULL, 0);
+    decnum = strtol(argv[2], NULL, 0);
     
     tp_ctx = (thread_param_ctx*)malloc(nthreads * sizeof(thread_param_ctx));
-    g_demux_ctx = (demux_ctx*)malloc(dnum * sizeof(demux_ctx));
+    g_demux_ctx = (demux_ctx*)malloc((decnum * nthreads) * sizeof(demux_ctx));
 
-    printf("process will be execute, thread num:%d decoder num:%d skipFrameNum:%d \n", nthreads, dnum, skipFrameNum);
+    printf("process will be execute, work thread num:%d decoder num:%d skipFrameNum:%d \n", nthreads, decnum, skipFrameNum);
     
     ret = AmsDecoderInit(skipFrameNum, DecodeCallback);
     if(ret < 0){
@@ -246,16 +255,14 @@ int main (int argc, char **argv) {
         tp_ctx[i].url = argv[i + 3];
         tp_ctx[i].index = i;
         tp_ctx[i].fid = 0;
-        tp_ctx[i].sid = (dnum / nthreads) * i;
-        tp_ctx[i].num = dnum / nthreads;
-        if ((i + 1) == nthreads)
-          tp_ctx[i].num += (dnum % nthreads);
-                    
+        tp_ctx[i].sid = decnum * i;
+        tp_ctx[i].num = decnum;                    
         tp_ctx[i].fs = NULL;
         
         pthread_create(&(tp_ctx[i].tid), NULL, demux_thread, &tp_ctx[i]);
     }
     
+    // main control thread
     while(1) {
         if (getexit() > 0) {
             printf("press ctrl + c, process will be exit\n");
@@ -266,6 +273,7 @@ int main (int argc, char **argv) {
         sleep(5);
     }
 
+    // wait work thread exit
     while(1) {
         if (getexit() > nthreads) {
             printf("wait for thread num:%d exit over\n", nthreads);
@@ -275,6 +283,7 @@ int main (int argc, char **argv) {
         sleep(1);    
     }
     
+    printf("process will releas board card decoder\n");
     sleep(5);
     ret = AmsDecoderRelease();
     if(ret < 0){
