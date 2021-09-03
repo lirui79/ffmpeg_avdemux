@@ -131,7 +131,7 @@ static void *demux_thread(void *arg) {
   pkt.data = NULL;
   pkt.size = 0;
 
-  par = malloc(sizeof(AmsStreamPar));
+  par = (AmsStreamPar*)malloc(sizeof(AmsStreamPar));
   par->ID = ctx->sid;
   par->codecId = 0;
   par->width = avcodecpar->width;
@@ -193,7 +193,7 @@ end:
        code = 0;
        for (i = 0; i < ctx->num; ++i) {
          printf("thread:%x pid:%d wait decode:[%d  %d]\n", ctx->tid, dctx[i].pid, ctx->fid, dctx[i].fid);
-         if ((dctx[i].fid * step) < ctx->fid )
+         if ((dctx[i].fid * (step + 1)) < ctx->fid )
              continue;
          ++code;
        }
@@ -230,8 +230,8 @@ int main (int argc, char **argv) {
     signal(SIGINT, sign_func);
     dnum = strtol(argv[1], NULL, 0);
     
-    tp_ctx = malloc(nthreads * sizeof(thread_param_ctx));
-    g_demux_ctx = malloc(dnum * sizeof(demux_ctx));
+    tp_ctx = (thread_param_ctx*)malloc(nthreads * sizeof(thread_param_ctx));
+    g_demux_ctx = (demux_ctx*)malloc(dnum * sizeof(demux_ctx));
 
     printf("process will be execute, thread num:%d decoder num:%d\n", nthreads, dnum);
     
