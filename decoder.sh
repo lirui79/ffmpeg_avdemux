@@ -6,28 +6,20 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/decoder/lib/
 
 
 CMD_PARAM=(
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_0.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_1.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_2.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_3.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_4.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_5.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_6.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_7.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_8.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_9.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_10.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_11.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_12.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_13.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_14.h264 "
-" rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_15.h264 "
+" rtsp://admin:fiberhome025@192.17.1.72:554/ "
+" rtsp://admin:fiberhome025@192.17.1.72:554/ "
+" rtsp://admin:fiberhome025@192.17.1.72:554/ "
+" rtsp://admin:fiberhome025@192.17.1.72:554/ "
+" rtsp://admin:fiberhome025@192.17.1.72:554/ "
+" rtsp://admin:fiberhome025@192.17.1.72:554/ "
 )
 
 INUM=${#CMD_PARAM[@]}
 echo $INUM
+INUM=4
 
-ALL_CMD=" "
+DNUM=16
+ALL_CMD=" "$DNUM" "
 
 for ((i=0; i < INUM; ++i))
 do
