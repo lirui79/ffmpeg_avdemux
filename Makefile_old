@@ -1,0 +1,41 @@
+export CXX=g++
+export LD=ld
+
+DIR:=$(shell realpath .)
+
+# target source
+SRC  := singleDecode.cpp
+OBJ  := $(SRC:%.cpp=%.o)
+
+TARGET := $(OBJ:%.o=%)
+
+#CXXFLAGS= -I.. -I../../x86_pciv
+CXXFLAGS= -I./
+LDFLAGS += -Wl,-rpath,$(DIR)/..
+LDFLAGS += -L/opt/decoder/lib/ -lvideodecoder_vps -lpthread -lm -lc -ldl
+
+all: test_decode
+
+
+test_decode: $(OBJ)
+	$(CXX) -o $@ $^ $(LDFLAGS)  $(LIBS) 
+
+clean:
+	@rm test_vps *.o -fr
+
+CXXFLAGS += $(INC_FLAGS) -std=c++11 -fPIC -g
+
+LOG ?= 0
+CXXFLAGS += -D__LOG_FMT_TYPE__=$(LOG)
+
+# this is a suffix replacement rule for building .o's from .c's
+# it uses automatic variables $<: the name of the prerequisite of
+# the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
+# (see the gnu make manual section about automatic variables)
+.c.o:
+	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
+
+.cpp.o:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $<  -o $@
+
+
