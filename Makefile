@@ -87,6 +87,7 @@ avdemux_test:
 	 cp /usr/local/lib/*.a ./ -rf
 	 cp /home/ams/ffmpeg_build/lib/*.a ./ -rf
 	gcc -Wl,--no-as-needed avdemuxing.c avdemux_test.c -L. -L/opt/decoder/lib/ -lvideodecoder_vps -lva -lva-drm -lavformat -lavcodec -lavutil -lswscale -lswresample -lpostproc -lx264 -lvorbisenc -lvpx -lfdk-aac -lmp3lame -lopus -lvorbis -lvorbisfile -logg  -lm -lpthread -lrt -lz -llzma -lbz2 -ldl -o avdemux_test
+	 rm *.a -rf
 
 clean:
 	rm *.o *.so *.a *_test

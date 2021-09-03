@@ -73,7 +73,7 @@ typedef struct thread_param_ctx {
   int         num; // demux ctx number
 }thread_param_ctx;
 
- static int step = 5;
+static int skipFrameNum = 5;
 static void *demux_thread(void *arg) {
   AVPacket pkt;
   AVFormatContext *fmt_ctx = NULL;
@@ -193,7 +193,7 @@ end:
        code = 0;
        for (i = 0; i < ctx->num; ++i) {
          printf("thread:%x pid:%d wait decode:[%d  %d]\n", ctx->tid, dctx[i].pid, ctx->fid, dctx[i].fid);
-         if ((dctx[i].fid * (step + 1)) < ctx->fid )
+         if (((dctx[i].fid + 1) * (skipFrameNum + 1)) < ctx->fid )
              continue;
          ++code;
        }
@@ -220,22 +220,22 @@ end:
   
 
 
-//./avdemux_test  rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_0.h264 rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp_v_1.h264
-//./avdemux_test 16  rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/
+//./avdemux_test 5 16  rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/ rtsp://admin:fiberhome025@192.17.1.72:554/
 int main (int argc, char **argv) {
     thread_param_ctx *tp_ctx = NULL;
-    int nthreads = argc - 2, i =0, ret = 0;
+    int nthreads = argc - 3, i =0, ret = 0;
     int dnum = 0;
     pthread_mutex_init(&g_mutex, NULL);
     signal(SIGINT, sign_func);
-    dnum = strtol(argv[1], NULL, 0);
+    skipFrameNum = strtol(argv[1], NULL, 0);
+    dnum = strtol(argv[2], NULL, 0);
     
     tp_ctx = (thread_param_ctx*)malloc(nthreads * sizeof(thread_param_ctx));
     g_demux_ctx = (demux_ctx*)malloc(dnum * sizeof(demux_ctx));
 
-    printf("process will be execute, thread num:%d decoder num:%d\n", nthreads, dnum);
+    printf("process will be execute, thread num:%d decoder num:%d skipFrameNum:%d \n", nthreads, dnum, skipFrameNum);
     
-    ret = AmsDecoderInit(step, DecodeCallback);
+    ret = AmsDecoderInit(skipFrameNum, DecodeCallback);
     if(ret < 0){
         printf("error when init ams decoder\n");
         return -1;
@@ -243,7 +243,7 @@ int main (int argc, char **argv) {
 
     for (i = 0; i < nthreads; ++i) {
         //sprintf(tp_ctx[i].url, "%s",argv[i + 2]);
-        tp_ctx[i].url = argv[i + 2];
+        tp_ctx[i].url = argv[i + 3];
         tp_ctx[i].index = i;
         tp_ctx[i].fid = 0;
         tp_ctx[i].sid = (dnum / nthreads) * i;

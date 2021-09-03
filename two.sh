@@ -21,8 +21,13 @@ echo $INUM
 
 INUM=2
 
+STEP=5
+
 DNUM=8
-ALL_CMD=" "$DNUM" "
+
+ALL_CMD=" "$STEP
+ALL_CMD=$ALL_CMD" "$DNUM
+
 for ((i=0; i < INUM; ++i))
 do
 

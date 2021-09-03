@@ -18,8 +18,12 @@ INUM=${#CMD_PARAM[@]}
 echo $INUM
 INUM=4
 
+STEP=5
 DNUM=16
-ALL_CMD=" "$DNUM" "
+
+
+ALL_CMD=" "$STEP
+ALL_CMD=$ALL_CMD" "$DNUM
 
 for ((i=0; i < INUM; ++i))
 do
